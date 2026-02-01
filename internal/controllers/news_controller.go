@@ -35,6 +35,7 @@ func (c *NewsController) GetAll(ctx *gin.Context) {
 	})
 }
 
+/*
 func (c *NewsController) Create(ctx *gin.Context) {
 	var news model.News
 	if err := ctx.ShouldBindJSON(&news); err != nil {
@@ -43,6 +44,22 @@ func (c *NewsController) Create(ctx *gin.Context) {
 	}
 	c.service.CreateNews(&news)
 	ctx.JSON(200, gin.H{"message": "created"})
+}
+*/
+
+func (c *NewsController) Create(ctx *gin.Context) {
+	var news model.News
+	if err := ctx.ShouldBindJSON(&news); err != nil {
+		ctx.Error(errno.New(errno.ErrInvalidParam, err.Error()))
+		return
+	}
+
+	if err := c.service.CreateWithLog(&news); err != nil {
+		ctx.Error(err)
+		return
+	}
+
+	response.Success(ctx, gin.H{"id": news.ID})
 }
 
 // GetByID godoc

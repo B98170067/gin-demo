@@ -24,6 +24,10 @@ func (r *NewsRepository) Create(news *model.News) error {
 	return r.db.Create(news).Error
 }
 
+func (r *NewsRepository) CreateTx(tx *gorm.DB, news *model.News) error {
+	return tx.Create(news).Error
+}
+
 func (r *NewsRepository) FindByID(id uint) (*model.News, error) {
 	var news model.News
 	err := r.db.First(&news, id).Error
@@ -51,4 +55,8 @@ func (r *NewsRepository) FindPaged(page, size int, status *int) ([]model.News, i
 	query.Offset((page - 1) * size).Limit(size).Find(&news)
 
 	return news, total
+}
+
+func (r *NewsRepository) Transaction(fn func(tx *gorm.DB) error) error {
+	return r.db.Transaction(fn)
 }
