@@ -3,7 +3,6 @@ package controller
 import (
 	model "gin-demo/internal/models"
 	service "gin-demo/internal/services"
-	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -18,8 +17,20 @@ func NewNewsController(service *service.NewsService) *NewsController {
 }
 
 func (c *NewsController) GetAll(ctx *gin.Context) {
-	data, _ := c.service.GetAllNews()
-	ctx.JSON(http.StatusOK, gin.H{"data": data})
+	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	size, _ := strconv.Atoi(ctx.DefaultQuery("size", "10"))
+
+	var status *int
+	if s := ctx.Query("status"); s != "" {
+		v, _ := strconv.Atoi(s)
+		status = &v
+	}
+
+	data, total := c.service.GetPaged(page, size, status)
+	ctx.JSON(200, gin.H{
+		"data":  data,
+		"total": total,
+	})
 }
 
 func (c *NewsController) Create(ctx *gin.Context) {

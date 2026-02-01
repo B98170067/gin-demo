@@ -17,6 +17,10 @@ func (s *NewsService) GetAllNews() ([]model.News, error) {
 	return s.repo.FindAll()
 }
 
+func (s *NewsService) GetPaged(page, size int, status *int) ([]model.News, int64) {
+	return s.repo.FindPaged(page, size, status)
+}
+
 func (s *NewsService) CreateNews(news *model.News) error {
 	return s.repo.Create(news)
 }

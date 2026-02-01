@@ -37,3 +37,18 @@ func (r *NewsRepository) Update(news *model.News) error {
 func (r *NewsRepository) Delete(id uint) error {
 	return r.db.Delete(&model.News{}, id).Error
 }
+
+func (r *NewsRepository) FindPaged(page, size int, status *int) ([]model.News, int64) {
+	var news []model.News
+	var total int64
+
+	query := r.db.Model(&model.News{})
+	if status != nil {
+		query = query.Where("status = ?", *status)
+	}
+
+	query.Count(&total)
+	query.Offset((page - 1) * size).Limit(size).Find(&news)
+
+	return news, total
+}
