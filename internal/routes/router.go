@@ -2,6 +2,7 @@ package router
 
 import (
 	controller "gin-demo/internal/controllers"
+	"gin-demo/internal/middleware"
 	repository "gin-demo/internal/repositories"
 	service "gin-demo/internal/services"
 
@@ -22,9 +23,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	{
 		news.GET("", controller.GetAll)
 		news.GET(":id", controller.GetByID)
-		news.POST("", controller.Create)
-		news.PUT(":id", controller.Update)
-		news.DELETE(":id", controller.Delete)
+		news.POST("", middleware.JWTAuth(), controller.Create)
+		news.PUT(":id", middleware.JWTAuth(), controller.Update)
+		news.DELETE(":id", middleware.JWTAuth(), controller.Delete)
 	}
 
 	return r
