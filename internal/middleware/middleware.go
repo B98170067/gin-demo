@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"net/http"
+	errno "gin-demo/pkg/error"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -17,7 +17,10 @@ func JWTAuth() gin.HandlerFunc {
 			return jwtSecret, nil
 		})
 		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			c.AbortWithStatusJSON(200, gin.H{
+				"code":    errno.ErrUnauthorized,
+				"message": "unauthorized",
+			})
 			return
 		}
 		c.Next()

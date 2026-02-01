@@ -3,6 +3,8 @@ package controller
 import (
 	model "gin-demo/internal/models"
 	service "gin-demo/internal/services"
+	errno "gin-demo/pkg/error"
+	"gin-demo/pkg/response"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -44,13 +46,19 @@ func (c *NewsController) Create(ctx *gin.Context) {
 }
 
 func (c *NewsController) GetByID(ctx *gin.Context) {
-	id, _ := strconv.Atoi(ctx.Param("id"))
-	data, err := c.service.GetByID(uint(id))
+	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(404, gin.H{"error": "not found"})
+		response.Error(ctx, errno.ErrInvalidParam, "invalid id")
 		return
 	}
-	ctx.JSON(200, gin.H{"data": data})
+
+	data, err := c.service.GetByID(uint(id))
+	if err != nil {
+		response.Error(ctx, errno.ErrNotFound, "news not found")
+		return
+	}
+
+	response.Success(ctx, data)
 }
 
 func (c *NewsController) Update(ctx *gin.Context) {
