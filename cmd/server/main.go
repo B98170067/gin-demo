@@ -17,12 +17,17 @@ package main
 // }
 
 import (
+	_ "gin-demo/docs"
 	config "gin-demo/internal/configs"
 	router "gin-demo/internal/routes"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
 	db := config.InitDB()
 	r := router.SetupRouter(db)
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.Run(":8080")
 }

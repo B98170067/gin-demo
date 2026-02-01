@@ -1,0 +1,30 @@
+definitions:
+  response.Response:
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+      resdata: {}
+    type: object
+info:
+  contact: {}
+paths:
+  /api/news/{id}:
+    get:
+      description: Get single news
+      parameters:
+      - description: News ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: Get news by id
+      tags:
+      - News
+swagger: "2.0"

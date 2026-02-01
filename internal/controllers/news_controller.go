@@ -45,6 +45,14 @@ func (c *NewsController) Create(ctx *gin.Context) {
 	ctx.JSON(200, gin.H{"message": "created"})
 }
 
+// GetByID godoc
+// @Summary Get news by id
+// @Description Get single news
+// @Tags News
+// @Param id path int true "News ID"
+// @Success 200 {object} response.Response
+// @Failure 200 {object} response.Response
+// @Router /api/news/{id} [get]
 func (c *NewsController) GetByID(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
