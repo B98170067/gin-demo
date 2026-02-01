@@ -11,7 +11,10 @@ import (
 )
 
 func SetupRouter(db *gorm.DB) *gin.Engine {
-	r := gin.Default()
+	// 有 Global Error Handler 時不要用 gin.Default()，因為要掌控 error flow
+	r := gin.New()
+	r.Use(gin.Logger())
+	r.Use(middleware.ErrorHandler())
 
 	repo := repository.NewNewsRepository(db)
 	service := service.NewNewsService(repo)

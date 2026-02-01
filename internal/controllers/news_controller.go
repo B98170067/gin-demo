@@ -48,13 +48,13 @@ func (c *NewsController) Create(ctx *gin.Context) {
 func (c *NewsController) GetByID(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		response.Error(ctx, errno.ErrInvalidParam, "invalid id")
+		ctx.Error(errno.New(errno.ErrInvalidParam, "invalid id"))
 		return
 	}
 
 	data, err := c.service.GetByID(uint(id))
 	if err != nil {
-		response.Error(ctx, errno.ErrNotFound, "news not found")
+		ctx.Error(errno.New(errno.ErrNotFound, "news not found"))
 		return
 	}
 
