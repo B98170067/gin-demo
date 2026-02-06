@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// INewsRepository 定义了新闻操作的所有行为
+//go:generate mockery --name=INewsRepository
 type INewsRepository interface {
 	FindAll() ([]model.News, error)
 	FindPaged(page, size int, status *int) ([]model.News, int64)

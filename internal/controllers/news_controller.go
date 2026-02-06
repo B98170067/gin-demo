@@ -5,6 +5,7 @@ import (
 	service "gin-demo/internal/services"
 	errno "gin-demo/pkg/error"
 	"gin-demo/pkg/response"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -118,24 +119,24 @@ func (c *NewsController) BatchImport(ctx *gin.Context) {
 	var newsList []model.News
 
 	// 1. 綁定 JSON 陣列
+	// 如果前端传的不是数组或者字段类型不对，直接报错
 	if err := ctx.ShouldBindJSON(&newsList); err != nil {
 		ctx.Error(errno.New(errno.ErrInvalidParam, err.Error()))
 		return
 	}
 
+	// 2. 检查数组是否为空
 	if len(newsList) == 0 {
 		ctx.Error(errno.New(errno.ErrInvalidParam, "列表不能为空"))
 		return
 	}
 
-	// 2. 呼叫 SafeBatchImport
+	// 3. 呼叫 SafeBatchImport
 	if err := c.service.SafeBatchImport(newsList); err != nil {
 		ctx.Error(err)
 		return
 	}
 
-	// 3. 成功回應
-	response.Success(ctx, gin.H{
-		"count": len(newsList),
-	})
+	// 4. 成功回應
+	ctx.JSON(http.StatusOK, gin.H{"message": "批量导入成功", "count": len(newsList)})
 }

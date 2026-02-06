@@ -6,6 +6,7 @@ import (
 	model "gin-demo/internal/models"
 	repository "gin-demo/internal/repositories"
 	"time"
+	"unicode/utf8"
 
 	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
@@ -123,7 +124,9 @@ func (s *NewsService) validateNews(n model.News) error {
 	if n.Title == "" {
 		return fmt.Errorf("新闻标题不能为空")
 	}
-	if len(n.Title) < 5 {
+
+	// 使用 RuneCountInString 计算真实的字符数
+	if utf8.RuneCountInString(n.Title) < 5 {
 		return fmt.Errorf("标题 '%s' 太短了，至少需要 5 个字", n.Title)
 	}
 	return nil
