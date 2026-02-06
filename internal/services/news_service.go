@@ -13,14 +13,14 @@ import (
 
 type NewsService struct {
 	db      *gorm.DB
-	repo    *repository.NewsRepository
-	logRepo *repository.NewsLogRepository
+	repo    repository.INewsRepository
+	logRepo repository.INewsLogRepository
 }
 
 func NewNewsService(
 	db *gorm.DB,
-	repo *repository.NewsRepository,
-	logRepo *repository.NewsLogRepository,
+	repo repository.INewsRepository,
+	logRepo repository.INewsLogRepository,
 ) *NewsService {
 	return &NewsService{
 		db:      db,

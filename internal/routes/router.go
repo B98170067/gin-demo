@@ -18,8 +18,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	newsRepo := repository.NewNewsRepository(db)
 	logRepo := repository.NewNewsLogRepository(db)
-	service := service.NewNewsService(db, newsRepo, logRepo)
-	newsController := controller.NewNewsController(service)
+	newsService := service.NewNewsService(db, newsRepo, logRepo)
+	newsController := controller.NewNewsController(newsService)
 
 	api := r.Group("/api")
 
