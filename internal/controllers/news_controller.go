@@ -103,3 +103,39 @@ func (c *NewsController) Delete(ctx *gin.Context) {
 	c.service.Delete(uint(id))
 	ctx.JSON(200, gin.H{"message": "deleted"})
 }
+
+// BatchImport godoc
+// @Summary Batch import news
+// @Description Validate concurrently then import news in one transaction
+// @Tags News
+// @Accept json
+// @Produce json
+// @Param data body []model.News true "News list"
+// @Success 200 {object} response.Response
+// @Failure 200 {object} response.Response
+// @Router /api/news/batch [post]
+func (c *NewsController) BatchImport(ctx *gin.Context) {
+	var newsList []model.News
+
+	// 1. 綁定 JSON 陣列
+	if err := ctx.ShouldBindJSON(&newsList); err != nil {
+		ctx.Error(errno.New(errno.ErrInvalidParam, err.Error()))
+		return
+	}
+
+	if len(newsList) == 0 {
+		ctx.Error(errno.New(errno.ErrInvalidParam, "列表不能为空"))
+		return
+	}
+
+	// 2. 呼叫 SafeBatchImport
+	if err := c.service.SafeBatchImport(newsList); err != nil {
+		ctx.Error(err)
+		return
+	}
+
+	// 3. 成功回應
+	response.Success(ctx, gin.H{
+		"count": len(newsList),
+	})
+}

@@ -19,17 +19,18 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	newsRepo := repository.NewNewsRepository(db)
 	logRepo := repository.NewNewsLogRepository(db)
 	service := service.NewNewsService(db, newsRepo, logRepo)
-	controller := controller.NewNewsController(service)
+	newsController := controller.NewNewsController(service)
 
 	api := r.Group("/api")
 
 	news := api.Group("/news")
 	{
-		news.GET("", controller.GetAll)
-		news.GET(":id", controller.GetByID)
-		news.POST("", middleware.JWTAuth(), controller.Create)
-		news.PUT(":id", middleware.JWTAuth(), controller.Update)
-		news.DELETE(":id", middleware.JWTAuth(), controller.Delete)
+		news.GET("", newsController.GetAll)
+		news.GET(":id", newsController.GetByID)
+		news.POST("/batch", middleware.JWTAuth(), newsController.BatchImport)
+		news.POST("", middleware.JWTAuth(), newsController.Create)
+		news.PUT(":id", middleware.JWTAuth(), newsController.Update)
+		news.DELETE(":id", middleware.JWTAuth(), newsController.Delete)
 	}
 
 	return r
