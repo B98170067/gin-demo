@@ -76,22 +76,20 @@ func (s *NewsService) Delete(id uint) error {
 // SafeBatchImport 高性能批量导入新闻
 // 逻辑：并发校验所有数据 -> 全部通过 -> 开启事务一次性写入
 func (s *NewsService) SafeBatchImport(newsList []model.News) error {
-	// 1. 设置 5 秒总超时控制，防止大批量数据卡死服务器
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// 主 Context：負責整體的 5 秒超時
+	mainCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// 2. 使用 errgroup 管理并发校验任务
-	g, ctx := errgroup.WithContext(ctx)
-
+	// 校驗用的 Context：僅用於 errgroup 內部的併發控制
+	g, checkCtx := errgroup.WithContext(mainCtx)
 	for i := range newsList {
 		// 闭包陷阱：必须重新定义变量，否则协程内拿到的都是最后一条数据
 		news := newsList[i]
-
 		g.Go(func() error {
 			// 检查 Context 是否已经因为其他协程报错或超时而取消
 			select {
-			case <-ctx.Done():
-				return ctx.Err()
+			case <-checkCtx.Done():
+				return checkCtx.Err()
 			default:
 				// 3. 执行并发校验逻辑（如标题长度、重复性检查）
 				return s.validateNews(news)
@@ -104,16 +102,50 @@ func (s *NewsService) SafeBatchImport(newsList []model.News) error {
 		return fmt.Errorf("批量校验失败或超时: %w", err)
 	}
 
-	// 5. 校验全部通过，开启事务写入数据库
-	return s.repo.Transaction(func(tx *gorm.DB) error {
-		for _, n := range newsList {
-			// 使用 WithContext 让 GORM 也能感知超时
-			if err := s.repo.CreateTx(tx.WithContext(ctx), &n); err != nil {
-				return err
+	/*
+		// 5. 校验全部通过，开启事务写入数据库
+		return s.repo.Transaction(func(tx *gorm.DB) error {
+			for _, n := range newsList {
+				// 使用 WithContext 让 GORM 也能感知超时
+				if err := s.repo.CreateTx(tx.WithContext(ctx), &n); err != nil {
+					return err
+				}
 			}
+			return nil
+		})
+	*/
+
+	// === 5. 分批寫入邏輯開始 ===
+	batchSize := 500 // 建議每 500~1000 筆一組
+	for i := 0; i < len(newsList); i += batchSize {
+		// 計算這一批的結尾索引
+		end := i + batchSize
+		if end > len(newsList) {
+			end = len(newsList)
 		}
-		return nil
-	})
+
+		chunk := newsList[i:end]
+
+		// 每一批開啟一個獨立的事務
+		err := s.repo.Transaction(func(tx *gorm.DB) error {
+			for _, n := range chunk {
+				// 這裡改用 mainCtx，它不會因為 errgroup 結束而被取消
+				if err := mainCtx.Err(); err != nil {
+					return err
+				}
+				if err := s.repo.CreateTx(tx.WithContext(mainCtx), &n); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+
+		if err != nil {
+			return fmt.Errorf("分批寫入中斷 (起始索引 %d): %w", i, err)
+		}
+	}
+
+	return nil
 }
 
 // validateNews 模拟具体的校验逻辑
