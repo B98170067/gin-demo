@@ -4,9 +4,9 @@ import "time"
 
 type News struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
-	Title     string    `json:"title"`
-	Content   string    `json:"content"`
-	Status    int       `json:"status"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	Title     string    `gorm:"size:255;not null" json:"title" binding:"required,min=5"`
+	Content   string    `gorm:"type:text" json:"content" binding:"required"`
+	Status    int       `gorm:"default:1" json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

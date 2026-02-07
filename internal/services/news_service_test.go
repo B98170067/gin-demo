@@ -1,8 +1,9 @@
-package service
+package service_test
 
 import (
 	model "gin-demo/internal/models"
 	repository "gin-demo/internal/repositories"
+	service "gin-demo/internal/services"
 	"gin-demo/mocks"
 	"testing"
 
@@ -37,7 +38,7 @@ func TestSafeBatchImport_ValidationError(t *testing.T) {
 	logRepo := repository.NewNewsLogRepository(gormDB)
 
 	// 4. 初始化 Service (傳入實例，滿足接口要求)
-	service := NewNewsService(gormDB, newsRepo, logRepo)
+	service := service.NewNewsService(gormDB, newsRepo, logRepo)
 
 	// 5. 準備測試數據：
 	// 第一條：合格
@@ -111,7 +112,7 @@ func TestSafeBatchImport_Mockery(t *testing.T) {
 	mockRepo.On("CreateTx", mock.Anything, mock.Anything).Return(nil).Maybe()
 
 	// 3. 注入 Mock 到 Service
-	service := NewNewsService(emptyDB, mockRepo, mockLogRepo)
+	service := service.NewNewsService(emptyDB, mockRepo, mockLogRepo)
 
 	// 1. 准备数据
 	newsList := []model.News{{Title: "太短"}}
@@ -129,4 +130,62 @@ func TestSafeBatchImport_Mockery(t *testing.T) {
 
 	// 4. 只有在校验失败的情况下，我们才确信 Transaction 不该被调用
 	mockRepo.AssertNotCalled(t, "Transaction", mock.Anything)
+}
+
+// 測試 1：使用真實 Repo + sqlmock 測試校驗邏輯 (確保併發校驗有效)
+func TestSafeBatchImport_BindingFailure(t *testing.T) {
+	db, mockDB, _ := sqlmock.New()
+	dialector := mysql.New(mysql.Config{Conn: db, SkipInitializeWithVersion: true})
+	gormDB, _ := gorm.Open(dialector, &gorm.Config{})
+
+	newsRepo := repository.NewNewsRepository(gormDB)
+	logRepo := repository.NewNewsLogRepository(gormDB)
+	service := service.NewNewsService(gormDB, newsRepo, logRepo)
+
+	// 資料：一條合格，一條只有 2 個字（會觸發 < 5 報錯）
+	newsList := []model.News{
+		{Title: "這是一個合格的標題"},
+		{Title: "太短"},
+	}
+
+	err := service.SafeBatchImport(newsList)
+
+	// 安全斷言
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "太短")
+	}
+
+	// 驗證是否因為校驗失敗而沒走到資料庫
+	assert.NoError(t, mockDB.ExpectationsWereMet())
+}
+
+// 測試 2：使用 Mockery 測試完整流程 (包含模擬寫入成功)
+func TestSafeBatchImport_Mockery_BindingSuccess(t *testing.T) {
+	// 建立一個空的 gorm.DB 供 WithContext 使用，避免 panic
+	sqlDB, _, _ := sqlmock.New()
+	dialector := mysql.New(mysql.Config{Conn: sqlDB, SkipInitializeWithVersion: true})
+	emptyDB, _ := gorm.Open(dialector, &gorm.Config{})
+
+	mockRepo := new(mocks.INewsRepository)
+	mockLogRepo := new(mocks.INewsLogRepository)
+	service := service.NewNewsService(emptyDB, mockRepo, mockLogRepo)
+
+	// 準備合格資料
+	newsList := []model.News{
+		{Title: "這是一個超級合格的標題"},
+	}
+
+	// 定義 Mock 行為
+	// 1. 模擬 Transaction 執行回調
+	mockRepo.On("Transaction", mock.Anything).Return(func(fn func(tx *gorm.DB) error) error {
+		return fn(emptyDB)
+	})
+
+	// 2. 模擬 CreateTx 成功
+	mockRepo.On("CreateTx", mock.Anything, mock.Anything).Return(nil)
+
+	err := service.SafeBatchImport(newsList)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
 }

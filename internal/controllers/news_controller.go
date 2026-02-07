@@ -119,7 +119,7 @@ func (c *NewsController) BatchImport(ctx *gin.Context) {
 	var newsList []model.News
 
 	// 1. 綁定 JSON 陣列
-	// 如果前端传的不是数组或者字段类型不对，直接报错
+	// ShouldBindJSON 会根据 News 结构体里的 binding 标签自动校验
 	if err := ctx.ShouldBindJSON(&newsList); err != nil {
 		ctx.Error(errno.New(errno.ErrInvalidParam, err.Error()))
 		return
@@ -138,5 +138,5 @@ func (c *NewsController) BatchImport(ctx *gin.Context) {
 	}
 
 	// 4. 成功回應
-	ctx.JSON(http.StatusOK, gin.H{"message": "批量导入成功", "count": len(newsList)})
+	ctx.JSON(http.StatusOK, gin.H{"message": "批量導入成功", "count": len(newsList)})
 }
